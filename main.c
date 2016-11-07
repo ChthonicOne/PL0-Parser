@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "lexer.h"
 
 #define MSTS 100
 
@@ -73,9 +74,9 @@ void factor();
 
 void consume(int last);
 void speak(int op, int l, int m);
-void ident(int kind);
-void getIdent(char * name);
-void storeIdent(char * name);
+void ident(int kind);               //Adds ident to symbol table
+void getIdent(char * name);         //Finds memory address in symbol table and pushes value to top of stack
+void storeIdent(char * name);       //Finds memory address in symbol table and stores top of stack there
 
 
 int main()
@@ -110,8 +111,6 @@ void constDec()
         {
             consume(commasym);
             ident(1);
-            consume(eqlsym);
-            number();
         }
         consume(semicolonsym);
     }
@@ -123,7 +122,7 @@ void varDec()
     {
         consume(varsym);
         ident(2);
-        while (tok == commasym)
+        while (tok.idNum == commasym)
         {
             consume(commasym);
             ident(2);
@@ -135,10 +134,10 @@ void varDec()
 
 void statement()
 {
+    char id[13];
     switch (tok.idNum)
     {
-        case identsym : char id[13];
-                        strcpy(id, tok.ident);
+        case identsym : strcpy(id, tok.ident);
                         consume(identsym);
                         consume(becomessym);
                         expression();
@@ -146,7 +145,7 @@ void statement()
                         break;
         case beginsym : consume(beginsym);
                         statement();
-                        while (tok == semicolonsym)
+                        while (tok.idNum == semicolonsym)
                         {
                             consume(semicolonsym);
                             statement();
@@ -171,7 +170,7 @@ void statement()
                         getIdent(tok.ident);
                         speak(9, 0, 0);
                         break;
-        default       :
+        default       : break;
     }
 }
 
@@ -199,7 +198,7 @@ void condition()
                           break;
             case geqsym : consume(geqsym);
                           break;
-            default     : consume(eqlsym);  // If it's not one of these we need an error of some kind.
+            default     : consume(neqsym);  // If it's not one of these we need an error of some kind.
         }
         expression();
         switch(op)
@@ -222,6 +221,7 @@ void condition()
 
 void expression()
 {
+    int isNeg=0;
     if (tok.idNum == plussym)
     {
         consume(plussym);
@@ -229,8 +229,11 @@ void expression()
     else if (tok.idNum == minussym)
     {
         consume(minussym);
+        isNeg = 1;
     }
     term();
+    if (isNeg)
+        speak (2, 0, 1);
     while (tok.idNum == plussym || tok.idNum == minussym)
     {
         if (tok.idNum == plussym)
@@ -308,7 +311,7 @@ void ident(int kind)
     }else if (kind == 2)                                //If our ident is a variable
     {
         symbolTable[pos].kind = 2;                      //Mark it as a variable
-        strcpy(symbolTable[pos].name, token.ident);     //Copy the name into the table
+        strcpy(symbolTable[pos].name, tok.ident);     //Copy the name into the table
         symbolTable[pos].level = 0;                     //We don't have procedures so everything's L level is 0
         symbolTable[pos].addr = frameSize + 1;          //Save the memory position of the variable into the table
         frameSize++;                                    //Increase the frame size
@@ -365,4 +368,5 @@ void storeIdent(char * name)
         speak(4, symbolTable[loc].level, symbolTable[loc].addr);
     }
 }
+
 
