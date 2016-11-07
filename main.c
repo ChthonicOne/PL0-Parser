@@ -58,7 +58,7 @@ enum Token_Name
 };
 
 symbol symbolTable[MSTS];
-int pos = 0;
+int pos = 0, frameSize = 4;
 token tok;
 
 void program();
@@ -76,7 +76,7 @@ void speak(int op, int l, int m);
 void ident(int kind);
 void getIdent(char * name);
 void storeIdent(char * name);
-void number();
+
 
 int main()
 {
@@ -104,8 +104,8 @@ void constDec()
     {
         consume(constsym);
         ident(1);
-        consume(eqlsym);
-        number();
+        /* consume(eqlsym); // Ident will handle this
+        number(); */
         while (tok.idNum == commasym)
         {
             consume(commasym);
@@ -130,6 +130,7 @@ void varDec()
         }
         consume(semicolonsym);
     }
+    speak(6, 0, frameSize);         //Set up our stack frame with room for all of our variables
 }
 
 void statement()
@@ -269,9 +270,99 @@ void factor()
     }
 }
 
-void consume(int last);
-void speak(int op, int l, int m);
-void ident(int kind);
-void getIdent(char * name);
-void storeIdent(char * name);
-void number();
+void consume(int last)
+{
+
+}
+
+void speak(int op, int l, int m)
+{
+
+}
+
+void ident(int kind)
+{
+    int i;
+    for (i=0; i<pos; i++)
+    {
+        if (strcmp(tok.ident, symbolTable[i].name) == 0)    //If there's already an identifier in our list with that name
+        {
+            printf("Error, duplicate identifier\n");    //Can't have two identifiers in the list at the same level with the same name
+            exit(0);
+        }
+    }
+
+
+    if (pos == 100)
+    {
+        printf("Too many symbols in the symbol table\n");
+        exit(0);
+    }else if (kind == 1)                                //If our ident is a constant
+    {
+        symbolTable[pos].kind = 1;                      //Mark the ident as a constant
+        strcpy(symbolTable[pos].name, tok.ident);       //Copy the name of the constant into the table
+        consume(identsym);                              //Next symbol
+        consume(eqlsym);                                //Next symbol
+        symbolTable[pos].val = tok.value;               //Save the value of the constant into the table
+        consume(numbersym);                             //Next symbol
+    }else if (kind == 2)                                //If our ident is a variable
+    {
+        symbolTable[pos].kind = 2;                      //Mark it as a variable
+        strcpy(symbolTable[pos].name, token.ident);     //Copy the name into the table
+        symbolTable[pos].level = 0;                     //We don't have procedures so everything's L level is 0
+        symbolTable[pos].addr = frameSize + 1;          //Save the memory position of the variable into the table
+        frameSize++;                                    //Increase the frame size
+        consume(identsym);                              //Next symbol
+    }
+    pos++;                                              //Next position in the symbol table
+}
+
+void getIdent(char * name)
+{
+    int i, loc = -1;
+    for (i=0; i<pos; i++)                               //Search for the identifier in the table
+    {
+        if (strcmp(name, symbolTable[i].name) == 0)
+        {
+            loc = i;
+        }
+    }
+    if (loc == -1)
+    {
+        printf("Identifier not declared in symbol table\n");
+        exit(0);
+    }
+    if (symbolTable[loc].kind == 1)                     //If it's a constant
+    {
+        speak(1, 0, symbolTable[loc].val);              //Put the value on the stack
+    }else                                               //Otherwise it's a variable
+    {
+        speak(3, symbolTable[loc].level, symbolTable[loc].addr);    //Load it's value from memory, and put it on the top of the stack
+    }
+}
+
+void storeIdent(char * name)
+{
+    int i, loc = -1;
+    for (i=0; i<pos; i++)
+    {
+        if (strcmp(name, symbolTable[i].name) == 0)
+        {
+            loc = i;
+        }
+    }
+    if (loc == -1)
+    {
+        printf("Identifier not declared in symbol table\n");
+        exit(0);
+    }
+    if (symbolTable[loc].kind == 1)                     //If it's a constant
+    {
+        printf("Cannot change the value of a constant\n");  //Can't change a constant
+        exit(0);
+    } else                                              //Otherwise it's a variable and we can store it
+    {
+        speak(4, symbolTable[loc].level, symbolTable[loc].addr);
+    }
+}
+
