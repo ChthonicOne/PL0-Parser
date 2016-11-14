@@ -1,0 +1,9 @@
+var x, y;
+
+begin
+  
+x := B;       
+  
+x := y + 56;
+
+end.
