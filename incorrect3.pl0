@@ -1,0 +1,11 @@
+var x, y;
+
+begin
+
+  y = 10
+;
+  x = 3;     
+  
+if x := y then ERROR
+
+end.
