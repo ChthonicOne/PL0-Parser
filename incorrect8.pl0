@@ -1,0 +1,11 @@
+var x, w;
+
+begin 
+  
+x := 0;
+
+w := 10;
+  
+if x repeat w then ERROR
+
+end.
