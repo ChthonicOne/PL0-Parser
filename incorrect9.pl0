@@ -1,0 +1,8 @@
+procedure PROGRAM;
+    
+GET(TOKEN);
+BLOCK;
+    
+if TOKEN = "periodsym"
+
+end.
