@@ -74,12 +74,35 @@ const char symbolName[34][13] = {"", "nulsym", "identsym", "numbersym", "plussym
                                  "rparentsym", "commasym", "semicolonsym", "periodsym", "becomessym", "beginsym", "endsym", "ifsym", "thensym", "whilesym", "dosym", "callsym", "constsym", "varsym",
                                  "procsym", "writesym", "readsym", "elsesym"};
 
+/**
+ *  Used by the three Ident functions to keep track of what ident is where
+ *
+ */
 symbol symbolTable[MSTS];
+
+/**
+ *  Used by the command barker to store the finished program before output
+ *
+ */
 command outputProgram[MPS];
+
+/**
+ *  pos is the current position for the end of the symbol table
+ *  frameSize determines where new variables will be stored in the stack as well as the size of the stack
+ *  total commands is the current position for the end of the program code
+ *  tokenNum is the token number of the current token. Used to tell the user where there is a problem
+ *  tok is the current token being parsed
+ *  InFile and OutFile are the input and output files
+ *      They are only opened in Main. They can be closed anywhere when we detect an error.
+ */
 int pos = 0, frameSize = 4, totalCommands = 0, tokenNum = 1;
 token tok;
 FILE *inFile, *outFile;
 
+/**
+ *  Non-Terminal Symbols
+ *  Used in Tiny PL0 Grammar
+ */
 void program();
 void block();
 void constDec();
@@ -90,7 +113,11 @@ void expression();
 void term();
 void factor();
 
-void consume(int last);
+/**
+ *  These provide functionality to our compiler
+ *
+ */
+void consume(int last);             //Consumes the old token, and gets a new one. Will complain if it gets heartburn (unexpected token)
 void bark(int op, int l, int m);    //Barks out command
 void rebark(int addr, int m);       //Updates command with new modifier
 void emitBark();                    //Outputs program to the file
