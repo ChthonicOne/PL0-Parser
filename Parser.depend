@@ -4,3 +4,16 @@
 	<stdlib.h>
 	<string.h>
 
+1478581356 source:d:\github\pl0-parser\lexer.c
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+
+1479086125 source:d:\github\pl0-parser\main.c
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	"lexer.h"
+
+1478581356 d:\github\pl0-parser\lexer.h
+
