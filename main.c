@@ -89,13 +89,13 @@ command outputProgram[MPS];
 /**
  *  pos is the current position for the end of the symbol table
  *  frameSize determines where new variables will be stored in the stack as well as the size of the stack
- *  total commands is the current position for the end of the program code
+ *  commandPos is the current position for the end of the program code
  *  tokenNum is the token number of the current token. Used to tell the user where there is a problem
  *  tok is the current token being parsed
  *  InFile and OutFile are the input and output files
  *      They are only opened in Main. They can be closed anywhere when we detect an error.
  */
-int pos = 0, frameSize = 4, totalCommands = 0, tokenNum = 1;
+int pos = 0, frameSize = 4, commandPos = 0, tokenNum = 0;
 token tok;
 FILE *inFile, *outFile;
 
@@ -134,11 +134,19 @@ int main(int argc, char **argv)
         return 0;
     }
     inFile = fopen(argv[1], "r");
+    if (inFile == NULL)
+    {
+        printf("Error, File not found!\n");
+        return 0;
+    }
+    tok.idNum = 1;
+    consume(nulsym);
 
     program();
 
-    fclose(inFile);
-
+    if (inFile!=NULL)
+        fclose(inFile);
+    printf("No Errors, program syntactically correct.\n");
 
     outFile = fopen(argv[2], "w");
     emitBark();
@@ -191,21 +199,22 @@ void varDec()
         }
         consume(semicolonsym);
     }
-    bark(6, 0, frameSize);         //Set up our stack frame with room for all of our variables
+    bark(6, 0, frameSize);             //Set up our stack frame with room for all of our variables
 }
 
 void statement()
 {
     char id[13];
+    int save, save2;
     switch (tok.idNum)
     {
-        case identsym : strcpy(id, tok.ident);
+        case identsym : strcpy(id, tok.ident);  //<ident> := <expression> ** Store the value of the ident token for later
                         consume(identsym);
                         consume(becomessym);
                         expression();
-                        storeIdent(id);
+                        storeIdent(id);         //Store the value at the top of the stack into the memory address for the identifier we started with.
                         break;
-        case beginsym : consume(beginsym);
+        case beginsym : consume(beginsym);      //begin <statement> {; <statement>} end
                         statement();
                         while (tok.idNum == semicolonsym)
                         {
@@ -214,23 +223,33 @@ void statement()
                         }
                         consume(endsym);
                         break;
-        case ifsym    : consume(ifsym);
+        case ifsym    : consume(ifsym);         //if <condition> then <statement>
                         condition();
+                        save = commandPos;      //Save the current command position so we can rebark it later
+                        bark(8, 0, 0);          //Bark out a jump if condition resolved to 0
                         consume(thensym);
                         statement();
+                        rebark(save, commandPos);   //Update the mod of our jump command to go to the next instruction after the body of the then.
                         break;
-        case whilesym : consume(whilesym);
+        case whilesym : consume(whilesym);      //while <condition> do <statement>
+                        save2 = commandPos;
                         condition();
+                        save = commandPos;      //Save the current command position so we can rebark it later
+                        bark(8, 0, 0);          //Bark out a jump if condition resolved to 0
                         consume(dosym);
                         statement();
+                        bark(7, 0, save2);
+                        rebark(save, commandPos);   //Update the mod of our jump command to go to the next instruction after the body of the loop.
                         break;
-        case readsym  : consume(readsym);
-                        bark(9, 0, 1);
-                        storeIdent(tok.ident);
+        case readsym  : consume(readsym);       //read <ident>
+                        bark(9, 0, 1);          //Bark out a read from user input command
+                        storeIdent(tok.ident);  //Store the value read in to the ident token we were given.
+                        consume(identsym);
                         break;
-        case writesym : consume(writesym);
-                        getIdent(tok.ident);
-                        bark(9, 0, 0);
+        case writesym : consume(writesym);      //write <ident>
+                        getIdent(tok.ident);    //Retrieve the value of the ident token we were given
+                        bark(9, 0, 0);          //Bark the command to write out the value on the top of the stack to the screen
+                        consume(identsym);
                         break;
         default       : break;
     }
@@ -298,24 +317,41 @@ void expression()
         bark (2, 0, 1);
     while (tok.idNum == plussym || tok.idNum == minussym)
     {
+        isNeg=0;
         if (tok.idNum == plussym)
             consume(plussym);
         else
+        {
             consume(minussym);
+            isNeg=1;
+        }
         term();
+        if (isNeg)
+            bark(2, 0, 3);
+        else
+            bark(2, 0, 2);
     }
 }
 
 void term()
 {
+    int isMult;
     factor();
     while (tok.idNum == multsym || tok.idNum == slashsym)
     {
+        isMult=0;
         if (tok.idNum == multsym)
+        {
             consume(multsym);
+            isMult=1;
+        }
         else
             consume(slashsym);
         factor();
+        if (isMult)
+            bark(2, 0, 4);
+        else
+            bark(2, 0, 5);
     }
 }
 
@@ -324,9 +360,11 @@ void factor()
     if (tok.idNum == identsym)
     {
         getIdent(tok.ident);
+        consume(identsym);
     }else if (tok.idNum == numbersym)
     {
         bark(1, 0, tok.value);
+        consume(numbersym);
     } else
     {
         consume(lparentsym);
@@ -344,60 +382,59 @@ void consume(int last)
     if (tok.idNum == last)
     {
         success = getNextToken(inFile, nToken, tName);
-        if (!success)
+        if (success)
         {
             fclose(inFile);
-            printf("Lexer failed to parse token #%d\n", tokenNum);
+            printf("Lexer failed to parse token #%d\n", tokenNum+1);
             exit(0);
         }
         tok.idNum = *nToken;
         if (tok.idNum == numbersym)
             tok.value = atoi(tName);
-        else
-            strcpy(tok.ident, tName);
+        strcpy(tok.ident, tName);
     } else
     {
         printf("Wrong token at token #%d\n", tokenNum);
         switch (last)
         {
         case nulsym:
-            printf("Expected nulsym, but found %s instead.\n", symbolName[tok.idNum]);
+            printf("Expected nulsym, but found %s: %s instead.\n", symbolName[tok.idNum], tok.ident);
             fclose(inFile);
             exit(0);
         case identsym:
-            printf("Expected identsym, but found %s instead.\n", symbolName[tok.idNum]);
+            printf("Expected identsym, but found %s: %s instead.\n", symbolName[tok.idNum], tok.ident);
             fclose(inFile);
             exit(0);
         case numbersym:
-            printf("Expected numbersym, but found %s instead.\n", symbolName[tok.idNum]);
+            printf("Expected numbersym, but found %s: %s instead.\n", symbolName[tok.idNum], tok.ident);
             fclose(inFile);
             exit(0);
         case plussym:
-            printf("Expected plussym, but found %s instead.\n", symbolName[tok.idNum]);
+            printf("Expected plussym, but found %s: %s instead.\n", symbolName[tok.idNum], tok.ident);
             fclose(inFile);
             exit(0);
         case minussym:
-            printf("Expected minussym, but found %s instead.\n", symbolName[tok.idNum]);
+            printf("Expected minussym, but found %s: %s instead.\n", symbolName[tok.idNum], tok.ident);
             fclose(inFile);
             exit(0);
         case multsym:
-            printf("Expected multsym, but found %s instead.\n", symbolName[tok.idNum]);
+            printf("Expected multsym, but found %s: %s instead.\n", symbolName[tok.idNum], tok.ident);
             fclose(inFile);
             exit(0);
         case slashsym:
-            printf("Expected slashsym, but found %s instead.\n", symbolName[tok.idNum]);
+            printf("Expected slashsym, but found %s: %s instead.\n", symbolName[tok.idNum], tok.ident);
             fclose(inFile);
             exit(0);
         case oddsym:
-            printf("Expected oddsym, but found %s instead.\n", symbolName[tok.idNum]);
+            printf("Expected oddsym, but found %s: %s instead.\n", symbolName[tok.idNum], tok.ident);
             fclose(inFile);
             exit(0);
         case eqlsym:
-            printf("Expected eqlsym, but found %s instead.\n", symbolName[tok.idNum]);
+            printf("Expected eqlsym, but found %s: %s instead.\n", symbolName[tok.idNum], tok.ident);
             fclose(inFile);
             exit(0);
         case neqsym:
-            printf("Expected neqsym, but found %s instead.\n", symbolName[tok.idNum]);
+            printf("Expected neqsym, but found %s: %s instead.\n", symbolName[tok.idNum], tok.ident);
             fclose(inFile);
             exit(0);
         case lessym:
@@ -437,59 +474,59 @@ void consume(int last)
             fclose(inFile);
             exit(0);
         case becomessym:
-            printf("Expected becomessym, but found %s instead.\n", symbolName[tok.idNum]);
+            printf("Expected becomessym, but found %s: %s instead.\n", symbolName[tok.idNum], tok.ident);
             fclose(inFile);
             exit(0);
         case beginsym:
-            printf("Expected beginsym, but found %s instead.\n", symbolName[tok.idNum]);
+            printf("Expected beginsym, but found %s: %s instead.\n", symbolName[tok.idNum], tok.ident);
             fclose(inFile);
             exit(0);
         case endsym:
-            printf("Expected endsym, but found %s instead.\n", symbolName[tok.idNum]);
+            printf("Expected endsym, but found %s: %s instead.\n", symbolName[tok.idNum], tok.ident);
             fclose(inFile);
             exit(0);
         case ifsym:
-            printf("Expected ifsym, but found %s instead.\n", symbolName[tok.idNum]);
+            printf("Expected ifsym, but found %s: %s instead.\n", symbolName[tok.idNum], tok.ident);
             fclose(inFile);
             exit(0);
         case thensym:
-            printf("Expected thensym, but found %s instead.\n", symbolName[tok.idNum]);
+            printf("Expected thensym, but found %s: %s instead.\n", symbolName[tok.idNum], tok.ident);
             fclose(inFile);
             exit(0);
         case whilesym:
-            printf("Expected whilesym, but found %s instead.\n", symbolName[tok.idNum]);
+            printf("Expected whilesym, but found %s: %s instead.\n", symbolName[tok.idNum], tok.ident);
             fclose(inFile);
             exit(0);
         case dosym:
-            printf("Expected dosym, but found %s instead.\n", symbolName[tok.idNum]);
+            printf("Expected dosym, but found %s: %s instead.\n", symbolName[tok.idNum], tok.ident);
             fclose(inFile);
             exit(0);
         case callsym:
-            printf("Expected callsym, but found %s instead.\n", symbolName[tok.idNum]);
+            printf("Expected callsym, but found %s: %s instead.\n", symbolName[tok.idNum], tok.ident);
             fclose(inFile);
             exit(0);
         case constsym:
-            printf("Expected constsym, but found %s instead.\n", symbolName[tok.idNum]);
+            printf("Expected constsym, but found %s: %s instead.\n", symbolName[tok.idNum], tok.ident);
             fclose(inFile);
             exit(0);
         case varsym:
-            printf("Expected varsym, but found %s instead.\n", symbolName[tok.idNum]);
+            printf("Expected varsym, but found %s: %s instead.\n", symbolName[tok.idNum], tok.ident);
             fclose(inFile);
             exit(0);
         case procsym:
-            printf("Expected procsym, but found %s instead.\n", symbolName[tok.idNum]);
+            printf("Expected procsym, but found %s: %s instead.\n", symbolName[tok.idNum], tok.ident);
             fclose(inFile);
             exit(0);
         case writesym:
-            printf("Expected writesym, but found %s instead.\n", symbolName[tok.idNum]);
+            printf("Expected writesym, but found %s: %s instead.\n", symbolName[tok.idNum], tok.ident);
             fclose(inFile);
             exit(0);
         case readsym:
-            printf("Expected readsym, but found %s instead.\n", symbolName[tok.idNum]);
+            printf("Expected readsym, but found %s: %s instead.\n", symbolName[tok.idNum], tok.ident);
             fclose(inFile);
             exit(0);
         case elsesym:
-            printf("Expected elsesym, but found %s instead.\n", symbolName[tok.idNum]);
+            printf("Expected elsesym, but found %s: %s instead.\n", symbolName[tok.idNum], tok.ident);
             fclose(inFile);
             exit(0);
         default:
@@ -498,22 +535,30 @@ void consume(int last)
             exit(1);
         }
     }
+    free(nToken);
     tokenNum++;
 }
 
 void bark(int op, int l, int m)
 {
-
+    outputProgram[commandPos].op = op;
+    outputProgram[commandPos].lex = l;
+    outputProgram[commandPos].mod = m;
+    commandPos++;
 }
 
 void rebark(int addr, int m)
 {
-
+    outputProgram[addr].mod = m;
 }
 
 void emitBark()
 {
-
+    int i;
+    for (i=0; i<commandPos; i++)
+    {
+        fprintf(outFile, "%d %d %d\n", outputProgram[i].op, outputProgram[i].lex, outputProgram[i].mod);
+    }
 }
 
 void ident(int kind)

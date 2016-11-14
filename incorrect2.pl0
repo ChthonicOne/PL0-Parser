@@ -1,9 +1,5 @@
 var a, x, y;
-
 begin
-  
-a := 0      
-  
+a := 0
 x := y + 56;
-
 end.

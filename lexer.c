@@ -284,7 +284,10 @@ int getNextToken(FILE *inFile, int *ftoken, char *value)
                 identifier too long anyways.
             */
             if (position + 1 > TOK_WIDTH - 1){  // We reserve 0-11 for the identifier, if position + 1 > 12 which is the max length of an identifier
-            	printf("Error: identifier too long.\n");    // We return an error
+                if (stateNow == 59)
+                    printf("Error: Number too large.\n");
+                else
+                    printf("Error: identifier too long.\n");    // We return an error
             	fclose(inFile);
             	return 1;                        // and exit the program
             }
@@ -317,8 +320,9 @@ int getNextToken(FILE *inFile, int *ftoken, char *value)
         fclose(inFile);
         return 1;
     }
+    *ftoken = 1;
 
-    fclose(inFile);
+    //fclose(inFile);
     return 0;
 }
 

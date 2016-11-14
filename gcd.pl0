@@ -1,0 +1,17 @@
+var a, b, c;
+begin
+  read a;
+  read b;
+  if a < b then begin
+    c := b;
+    b := a;
+    a := c
+  end;
+  while b <> 0 do 
+  begin
+    c := b;
+    b := a - (a / b) * b;
+    a := c
+  end;
+  write a;
+end .

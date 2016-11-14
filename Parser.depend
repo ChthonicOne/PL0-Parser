@@ -17,3 +17,16 @@
 
 1478581356 d:\github\pl0-parser\lexer.h
 
+1479165012 source:c:\users\student\desktop\pl0-parser-master\lexer.c
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+
+1479164664 source:c:\users\student\desktop\pl0-parser-master\main.c
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	"lexer.h"
+
+1479160442 c:\users\student\desktop\pl0-parser-master\lexer.h
+
