@@ -1,0 +1,6 @@
+var sum, num1, num2;
+begin
+	num1 := 250;
+	num2 := 100;
+	sum := num1 + num2;
+end.
