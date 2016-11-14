@@ -1,0 +1,12 @@
+const a = 3, b = 4;
+var a2, b2, c2;
+procedure triangle
+begin
+	a2 := a * a;
+	b2 := b * b;
+	c2 := a2 + b2;
+end;
+begin 
+	call triangle;
+end.
+	

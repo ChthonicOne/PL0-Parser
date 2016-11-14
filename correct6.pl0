@@ -1,0 +1,7 @@
+const a=3;
+var y, z;
+begin
+	y := 4; 
+	if a > y then z := 5;
+	if a < y then z := 0;
+end.

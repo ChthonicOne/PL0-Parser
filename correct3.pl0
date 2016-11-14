@@ -1,0 +1,10 @@
+var ans, x1, x2, y1, y2;
+begin
+	x1 := 2;
+	x2 := 3;
+	y1 := 4;
+	y2 := 6;
+	x1 := x1 - x2;
+	y1 := y1 - y2;
+	ans := y1 / x1;
+end.

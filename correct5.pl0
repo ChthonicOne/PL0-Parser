@@ -1,0 +1,10 @@
+var j, k;
+begin
+	j := 5;
+	k := 20;
+	while j < k do
+		begin
+			j := j + 1;
+			k := k - 1;
+		end;
+end.

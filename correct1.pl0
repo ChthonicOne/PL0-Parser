@@ -1,0 +1,7 @@
+const i = 5;
+var x, y;
+begin
+	x := 2 * i;
+	y := 3 * i;
+end.
+		
