@@ -1,0 +1,22 @@
+PL/0 code:
+
+  0  INC         6
+  1  LIT         2
+  2  STO    0    4
+  3  LOD    0    4
+  4  LOD    0    4
+  5  MUL    0    4
+  6  STO    0    5
+  7  HLT
+
+Execution:
+                      pc   bp   sp   stack
+                       0    1    0  
+  0  INC         6     1    1    6   0 0 0 0 0 0 
+  1  LIT         2     2    1    7   0 0 0 0 0 0 2 
+  2  STO    0    4     3    1    6   0 0 0 0 2 0 
+  3  LOD    0    4     4    1    7   0 0 0 0 2 0 2 
+  4  LOD    0    4     5    1    8   0 0 0 0 2 0 2 2 
+  5  MUL  	       6    1    7   0 0 0 0 2 0 4 
+  6  STO    0    5     7    1    6   0 0 0 0 2 4 
+  7  HLT 	       8    1    6   0 0 0 0 2 4 
