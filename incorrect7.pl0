@@ -1,7 +1,6 @@
 var x, w;
 
 begin
-    
-GET(TOKEN;
+    ww := 10;
 
 end.
