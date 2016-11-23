@@ -1,0 +1,16 @@
+/* procedure and variable with the same name */
+
+const end = 10;
+var count;
+procedure count; 
+	begin 
+		count := 0;
+		while count < end do
+			begin
+				count := count + 1;
+			end;
+	end;
+begin 
+	call count;
+end.
+

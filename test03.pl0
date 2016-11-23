@@ -1,0 +1,17 @@
+/* test input and output */
+
+const end = 10;
+var num;
+procedure count; 
+	begin 
+		num := 0;
+		while num < end do
+			begin
+				num := num + 1;
+				out num;
+			end;
+	end;
+begin 
+	call count;
+end.
+
